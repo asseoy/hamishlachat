@@ -56,7 +56,8 @@ export function createPlayer() {
     if (!G.uiOpen) { P.yaw -= input.mx * 0.0022 * s.sens; P.pitch -= input.my * 0.0022 * s.sens; P.pitch = clamp(P.pitch, -1.5, 1.5); }
     const wl = waveHeight(P.pos.x, P.pos.z, G.t);
     const bodyY = P.pos.y + 0.9;
-    P.swim = bodyY < wl + 0.1;
+    const groundHere = floorAt(P.pos.x, P.pos.z, P.pos.y + 0.5);
+    P.swim = bodyY < wl + 0.1 && (wl - groundHere) > 1.25;          // shallow water: you wade, not swim
     fwd.set(-Math.sin(P.yaw), 0, -Math.cos(P.yaw)); right.set(Math.cos(P.yaw), 0, -Math.sin(P.yaw));
     const mvF = G.uiOpen ? 0 : input.f, mvS = G.uiOpen ? 0 : input.s;
     if (!P.swim) {
@@ -87,8 +88,8 @@ export function createPlayer() {
       if (atSurface && wish.lengthSq() < 0.01) P.pos.y = damp(P.pos.y, wl - EYE + 0.25, 3, dt);   // float with the head out
       P.pos.addScaledVector(P.vel, dt); pushOut();
       const f = floorAt(P.pos.x, P.pos.z, P.pos.y);
-      if (P.pos.y < f + 0.15) { P.pos.y = f + 0.15; if (P.vel.y < 0) P.vel.y = 0; }
-      if (P.pos.y + EYE > wl + 0.3) P.pos.y = wl + 0.3 - EYE;
+      if (P.pos.y + EYE > wl + 0.3) P.pos.y = wl + 0.3 - EYE;            // head can't rise far above the surface...
+      if (P.pos.y < f + 0.15) { P.pos.y = f + 0.15; if (P.vel.y < 0) P.vel.y = 0; }   // ...but the ground always wins
       P.grounded = false;
       const hs = P.vel.length(); P.bob += hs * dt * 0.9;
       // exhale bubbles
@@ -96,6 +97,8 @@ export function createPlayer() {
       if (P.headUnder && P.bubT <= 0) { P.bubT = 2.6 + Math.random() * 1.5; P.events.push('exhale'); const e = cam.position; G.water.bubble(e.x, e.y - 0.05, e.z, 9, 0.15); }
       if (P.headUnder && hs > 3 && Math.random() < dt * 4) G.water.bubble(cam.position.x, cam.position.y - 0.3, cam.position.z, 1, 0.4);
     }
+    // safety net: never end up inside the ground
+    { const th = height(P.pos.x, P.pos.z); if (P.pos.y < th - 0.05) { P.pos.y = th; if (P.vel.y < 0) P.vel.y = 0; } }
     // world edge
     const rr = Math.hypot(P.pos.x, P.pos.z); if (rr > 430) { P.pos.x *= 430 / rr; P.pos.z *= 430 / rr; }
 
