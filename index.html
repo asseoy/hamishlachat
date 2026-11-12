@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>האי של המשלחת · שבט הנשיא</title>
+<link rel="icon" href="assets/logo.webp">
+<meta name="theme-color" content="#0a3a5e">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Karantina:wght@400;700&family=Frank+Ruhl+Libre:wght@500;700;900&family=Heebo:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+<script type="importmap">{ "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js", "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/" } }</script>
+</head>
+<body>
+<canvas id="gl"></canvas>
+<div id="uwTint"></div><div id="maskFrame"></div><div id="hurt"></div>
+
+<div id="hud" class="hidden">
+  <div id="cross"></div>
+  <div id="prompt" class="hidden"><span class="k">E</span><span id="promptText"></span></div>
+  <div id="compass"><div id="compassStrip"></div><i id="compassMark"></i><b></b></div>
+  <div id="obj"><small>משימה</small><span id="objText"></span><em id="objHint"></em></div>
+  <div id="vitals">
+    <div class="bar o2"><label>אוויר</label><div><i id="bO2"></i></div><span id="tO2"></span></div>
+    <div class="bar hp"><label>בריאות</label><div><i id="bHp"></i></div></div>
+    <div class="bar food"><label>אוכל</label><div><i id="bFood"></i></div></div>
+    <div class="bar water"><label>מים</label><div><i id="bWater"></i></div></div>
+  </div>
+  <div id="depth"><b id="depthNum">0</b><span>מ׳</span><small id="depthMax"></small></div>
+  <div id="picks"></div>
+  <div id="keysHint">Tab – תיק · E – אסוף · F – פנס · רווח/C – למעלה/למטה · Shift – מהר</div>
+</div>
+<div id="toast" class="hidden"><small id="toastOver"></small><b id="toastText"></b></div>
+<div id="fade"></div>
+
+<div id="menu" class="screen">
+  <div class="menuWrap">
+    <img src="assets/logo.webp" class="menuLogo" alt="">
+    <div class="over">שבט הנשיא מציג</div>
+    <h1 class="title">האי של המשלחת</h1>
+    <p class="sub">משלחת המחקר נעלמה. הספינה שלה טבועה מתחת למים. רק אתה יכול לגלות מה קרה.</p>
+    <div class="menuBtns">
+      <button class="btn big" id="btnNew">משחק חדש</button>
+      <button class="btn" id="btnLoad" disabled>המשך</button>
+      <button class="btn" id="btnHelp">איך משחקים</button>
+    </div>
+  </div>
+</div>
+<div id="help" class="screen hidden"><div class="panel">
+  <h2>איך משחקים</h2>
+  <table class="keys">
+    <tr><td><span class="k">W A S D</span></td><td>הליכה ושחייה (שוחים לכיוון שמסתכלים)</td></tr>
+    <tr><td><span class="k">עכבר</span></td><td>להסתכל</td></tr>
+    <tr><td><span class="k">רווח</span> / <span class="k">C</span></td><td>קפיצה · מתחת למים: למעלה / למטה</td></tr>
+    <tr><td><span class="k">Shift</span></td><td>ריצה / שחייה מהירה (עם סקוטר – טיסה)</td></tr>
+    <tr><td><span class="k">E</span></td><td>לאסוף, לפתוח, לתפוס דג, להשתמש</td></tr>
+    <tr><td><span class="k">Tab</span></td><td>תיק, ציוד ויומן</td></tr>
+    <tr><td><span class="k">F</span></td><td>פנס (אחרי שבונים)</td></tr>
+  </table>
+  <p class="dim">האוויר נגמר מתחת למים – עולים לנשום. בשולחן העבודה שבמחנה בונים ציוד. כל חליפה מאפשרת לרדת רק עד עומק מסוים.</p>
+  <button class="btn back">חזרה</button></div></div>
+<div id="pause" class="screen hidden"><div class="panel narrow"><h2>הפסקה</h2>
+  <label class="row">רגישות עכבר <input type="range" id="sSens" min="0.3" max="2.5" step="0.05"></label>
+  <label class="row">צלילים <input type="range" id="sSfx" min="0" max="1" step="0.05"></label>
+  <label class="row">מוזיקה <input type="range" id="sMusic" min="0" max="1" step="0.05"></label>
+  <label class="row">איכות <select id="sQuality"><option value="2">גבוהה</option><option value="1">רגילה</option><option value="0">נמוכה</option></select></label>
+  <div class="menuBtns"><button class="btn big" id="btnResume">המשך</button><button class="btn" id="btnSave">שמור ויצא לתפריט</button></div></div></div>
+
+<div id="bag" class="screen hidden"><div class="panel wide bagPanel">
+  <div class="bagHead"><h2>התיק</h2><button class="x" id="bagClose">✕</button></div>
+  <div id="bagTabs"><button data-t="הכל" class="on">הכל</button><button data-t="חומרי גלם">חומרי גלם</button><button data-t="חומרים">חומרים</button><button data-t="אוכל">אוכל</button><button data-t="ציוד">ציוד</button><button data-t="כלים">כלים</button><button data-t="משימה">משימה</button></div>
+  <div class="bagBody"><div id="bagGrid"></div><div class="side"><div id="itemInfo" class="dim">עבור עם העכבר על פריט</div><h3>ציוד</h3><div id="eqRow"></div><h3>יומן המשלחת</h3><div id="logList"></div></div></div>
+</div></div>
+<div id="craft" class="screen hidden"><div class="panel wide">
+  <div class="bagHead"><h2>שולחן עבודה</h2><button class="x" id="craftClose">✕</button></div>
+  <div id="craftTabs"></div><div id="craftList"></div>
+</div></div>
+<div id="note" class="screen hidden"><div class="panel narrow paper"><h2 id="noteTitle"></h2><p id="noteBody"></p><button class="btn" id="noteClose">סגור</button></div></div>
+<div id="dead" class="screen hidden"><div class="panel narrow"><h2>איבדת את ההכרה</h2><p>התעוררת במחנה. חלק מהדברים נשארו בים.</p><button class="btn big" id="btnRevive">להמשיך</button></div></div>
+<div id="loading" class="screen"><div class="loadBox"><div class="title small">האי של המשלחת</div><div class="lbar"><i id="loadBar"></i></div><div class="dim" id="loadText">בונים את האי…</div></div></div>
+<div id="err" class="hidden"></div>
+<script type="module" src="js/main.js"></script>
+</body>
+</html>
