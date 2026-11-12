@@ -1,5 +1,6 @@
 // Keyboard + mouse with pointer lock. Edge flags reset every frame.
 import { G } from './ctx.js';
+const safeLock = el => { try { const r = el && el.requestPointerLock && el.requestPointerLock(); if (r && r.catch) r.catch(() => {}); } catch (e) {} };
 export const input = { f: 0, s: 0, jump: false, down: false, sprint: false, mx: 0, my: 0, locked: false, keys: {},
   jumpPressed: false, usePressed: false, invPressed: false, lampPressed: false, escPressed: false, clickPressed: false, num: 0 };
 export function initInput(canvas) {
@@ -16,7 +17,7 @@ export function initInput(canvas) {
   });
   addEventListener('keyup', e => { k[e.code] = false; });
   addEventListener('blur', () => { for (const c in k) k[c] = false; });
-  canvas.addEventListener('mousedown', e => { if (G.running && !G.uiOpen && !G.paused) { if (!input.locked) canvas.requestPointerLock && canvas.requestPointerLock(); else input.clickPressed = true; } });
+  canvas.addEventListener('mousedown', e => { if (G.running && !G.uiOpen && !G.paused) { if (!input.locked) safeLock(canvas); else input.clickPressed = true; } });
   document.addEventListener('pointerlockchange', () => { input.locked = document.pointerLockElement === canvas; if (!input.locked && G.running && !G.uiOpen && !G.paused && !G.dev) G.onUnlock && G.onUnlock(); });
   addEventListener('mousemove', e => { if (input.locked || G.dev) { input.mx += e.movementX || 0; input.my += e.movementY || 0; } });
 }

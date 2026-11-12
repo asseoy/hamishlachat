@@ -76,6 +76,7 @@ export const RECIPES = [
   { out: 'rubber', in: { plastic: 2 }, tab: 'חומרים' },
   { out: 'glass', in: { seaGlass: 2, salt: 1 }, tab: 'חומרים' },
   { out: 'copperWire', in: { copperOre: 2 }, tab: 'חומרים' },
+  { out: 'copperWire', in: { wires: 2 }, tab: 'חומרים', alt: true },
   { out: 'metalPlate', in: { scrap: 2 }, tab: 'חומרים' },
   { out: 'lens', in: { quartz: 1, glass: 1 }, tab: 'חומרים' },
   { out: 'water', in: { plastic: 1 }, tab: 'אוכל' },
@@ -188,7 +189,7 @@ const SPAWN = {
   plastic: { n: 55, b: ['beach'] }, oldRope: { n: 30, b: ['beach'] }, shell: { n: 90, b: ['lagoon', 'beach'] }, seagrass: { n: 120, b: ['lagoon', 'slope'] },
   seaGlass: { n: 60, b: ['lagoon', 'beach'] }, urchin: { n: 60, b: ['reef'] }, coralRubble: { n: 80, b: ['reef', 'lagoon'] }, sponge: { n: 70, b: ['sponge'] },
   copperOre: { n: 55, b: ['slope', 'reef'], steep: true }, quartz: { n: 50, b: ['slope', 'plain', 'reef'] }, salt: { n: 45, b: ['beach'] },
-  scrap: { n: 50, near: 'wreck', r: 45 }, silverOre: { n: 40, b: ['deep'] }, glowCrystal: { n: 45, b: ['trench', 'deep'], deep: -55 }, deepSponge: { n: 40, b: ['deep', 'trench'], deep: -45 },
+  scrap: { n: 50, near: 'wreck', r: 45 }, battery: { n: 6, near: 'wreck', r: 35 }, wires: { n: 6, near: 'wreck', r: 35 }, silverOre: { n: 40, b: ['deep'] }, glowCrystal: { n: 45, b: ['trench', 'deep'], deep: -55 }, deepSponge: { n: 40, b: ['deep', 'trench'], deep: -45 },
   starfish: { n: 50, b: ['lagoon', 'plain'] }, bottleMsg: { n: 1, fixed: [[-52, 60]] },
 };
 export function spawnItems(collected) {

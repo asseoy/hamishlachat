@@ -5,6 +5,7 @@ import { G, clamp, save, writeSave } from './ctx.js';
 import { ITEMS, RECIPES } from './items.js';
 import { LOGS } from './world.js';
 import { input } from './input.js';
+const safeLock = el => { try { const r = el && el.requestPointerLock && el.requestPointerLock(); if (r && r.catch) r.catch(() => {}); } catch (e) {} };
 
 const $ = id => document.getElementById(id);
 export function createInventory(state) {
@@ -55,7 +56,7 @@ export function createInventory(state) {
   inv.showNote = showNote;
   document.querySelectorAll('#bagTabs button').forEach(b => b.onclick = () => { tab = b.dataset.t; document.querySelectorAll('#bagTabs button').forEach(x => x.classList.toggle('on', x === b)); refresh(); });
   inv.toggle = (v = !open) => { open = v; $('bag').classList.toggle('hidden', !open); if (open) { craftOpen && inv.craft(false); G.uiOpen = true; document.exitPointerLock && document.exitPointerLock(); refresh(); } else closeUI(); };
-  function closeUI() { G.uiOpen = false; $('note').classList.add('hidden'); if (G.running && !G.paused) G.canvas.requestPointerLock && G.canvas.requestPointerLock(); }
+  function closeUI() { G.uiOpen = false; $('note').classList.add('hidden'); if (G.running && !G.paused) safeLock(G.canvas); }
 
   // ---------- crafting ----------
   const canMake = r => Object.entries(r.in).every(([id, n]) => count(id) >= n);

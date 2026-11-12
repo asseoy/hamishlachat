@@ -12,6 +12,7 @@ import { buildWorld } from './world.js';
 import { createPlayer } from './player.js';
 import { createInventory, createStory } from './inventory.js';
 import { createAudio } from './audio.js';
+const safeLock = el => { try { const r = el && el.requestPointerLock && el.requestPointerLock(); if (r && r.catch) r.catch(() => {}); } catch (e) {} };
 
 const $ = id => document.getElementById(id);
 const err = m => { const e = $('err'); e.classList.remove('hidden'); e.textContent += m + '\n'; };
@@ -58,13 +59,13 @@ async function boot() {
   function start(fresh) {
     audio.start();
     if (fresh) { save.game = null; writeSave(); location.href = location.pathname + (G.dev ? '?dev&new' : '?new'); return; }
-    G.running = true; G.paused = false; show(null); canvas.requestPointerLock && canvas.requestPointerLock();
+    G.running = true; G.paused = false; show(null); safeLock(canvas);
     if (!st.pos) setTimeout(() => G.toast('שבט הנשיא', 'האי של המשלחת'), 400);
   }
   $('btnNew').onclick = () => start(true);
   $('btnLoad').disabled = !save.game; $('btnLoad').onclick = () => start(false);
   $('btnHelp').onclick = () => show('help'); document.querySelectorAll('.back').forEach(b => b.onclick = () => show('menu'));
-  const pause = v => { if (!G.running) return; G.paused = v; if (v) { show('pause'); document.exitPointerLock && document.exitPointerLock(); $('sSens').value = save.settings.sens; $('sSfx').value = save.settings.sfx; $('sMusic').value = save.settings.music; $('sQuality').value = save.settings.quality; } else { show(null); canvas.requestPointerLock && canvas.requestPointerLock(); } };
+  const pause = v => { if (!G.running) return; G.paused = v; if (v) { show('pause'); document.exitPointerLock && document.exitPointerLock(); $('sSens').value = save.settings.sens; $('sSfx').value = save.settings.sfx; $('sMusic').value = save.settings.music; $('sQuality').value = save.settings.quality; } else { show(null); safeLock(canvas); } };
   G.onUnlock = () => pause(true);
   $('btnResume').onclick = () => pause(false);
   $('btnSave').onclick = () => { doSave(); G.running = false; G.paused = false; show('menu'); $('btnLoad').disabled = false; };
@@ -72,7 +73,7 @@ async function boot() {
   G.onDeath = () => { document.exitPointerLock && document.exitPointerLock(); $('fade').style.opacity = 1; setTimeout(() => { show('dead'); $('fade').style.opacity = 0; }, 700); };
   $('btnRevive').onclick = () => {   // lose some raw materials, wake up at camp
     for (const id of Object.keys(inv.bag)) if (!['gear', 'quest', 'tool'].includes(ITEMS[id].cat) && Math.random() < 0.3) inv.take(id, Math.ceil(inv.bag[id] / 2));
-    spawnAtCamp(); P.food = Math.max(P.food, 40); P.water = Math.max(P.water, 40); show(null); canvas.requestPointerLock && canvas.requestPointerLock();
+    spawnAtCamp(); P.food = Math.max(P.food, 40); P.water = Math.max(P.water, 40); show(null); safeLock(canvas);
   };
   G.onChapterEnd = () => { setTimeout(() => inv.showNote('סוף פרק 1', 'הגעת לקרקעית התעלה. מתחת לגבישים הזוהרים מסתתרת דלת מתכת עגולה – הכניסה לתחנה של תמר. הפרק הבא: התחנה בעומק.'), 1500); };
   setInterval(() => { if (G.running && !G.paused && P.alive) doSave(); }, 20000);

@@ -30,7 +30,7 @@ export function createPlayer() {
         if (d < m && d > 1e-4) { const k = (m - d) / d; P.pos.x += dx * k; P.pos.z += dz * k; if (!P.swim && dy > s.r * 0.4) { /* standing on a rock */ } else P.pos.y += dy * k * 0.6; }
       } else {                                                       // yaw box
         const dx = P.pos.x - s.x, dz = P.pos.z - s.z, lx = dx * s.c - dz * s.s, lz = dx * s.s + dz * s.c;
-        if (cy < s.y - s.hy - 0.9 || P.pos.y > s.y + s.hy) continue;
+        if (cy < s.y - s.hy - 0.9 || P.pos.y + 0.4 > s.y + s.hy) continue;     // a top below the knees is a floor to stand on, not a wall
         const qx = clamp(lx, -s.hx, s.hx), qz = clamp(lz, -s.hz, s.hz); let ex = lx - qx, ez = lz - qz, d = Math.hypot(ex, ez);
         if (d < R) {
           if (d < 1e-4) { const px = s.hx - Math.abs(lx), pz = s.hz - Math.abs(lz); if (px < pz) { ex = Math.sign(lx); ez = 0; d = 0; } else { ex = 0; ez = Math.sign(lz); d = 0; } const k = (px < pz ? px : pz) + R; const wx = ex * s.c + ez * s.s, wz = -ex * s.s + ez * s.c; P.pos.x += wx * k; P.pos.z += wz * k; }
