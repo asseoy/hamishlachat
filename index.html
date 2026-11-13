@@ -18,8 +18,9 @@
 <div id="hud" class="hidden">
   <div id="cross"></div>
   <div id="prompt" class="hidden"><span class="k">E</span><span id="promptText"></span></div>
-  <div id="compass"><div id="compassStrip"></div><i id="compassMark"></i><b></b></div>
-  <div id="obj"><small>משימה</small><span id="objText"></span><em id="objHint"></em></div>
+  <div id="compass"><div id="compassStrip"></div><i id="compassMark"></i><b></b></div><div id="compassDist"></div>
+  <div id="obj"><small>משימה</small><span id="objText"></span><em id="objHint"></em><ul id="objNeed"></ul></div>
+  <div id="tip" class="hidden"></div>
   <div id="vitals">
     <div class="bar o2"><label>אוויר</label><div><i id="bO2"></i></div><span id="tO2"></span></div>
     <div class="bar hp"><label>בריאות</label><div><i id="bHp"></i></div></div>
@@ -76,6 +77,19 @@
   <div id="craftTabs"></div><div id="craftList"></div>
 </div></div>
 <div id="note" class="screen hidden"><div class="panel narrow paper"><h2 id="noteTitle"></h2><p id="noteBody"></p><button class="btn" id="noteClose">סגור</button></div></div>
+<div id="tut" class="screen hidden"><div class="panel">
+  <h2>איך משחקים</h2>
+  <div class="tutGrid">
+    <div><span class="k">W A S D</span><p>הולכים ושוחים. מתחת למים שוחים לכיוון שמסתכלים.</p></div>
+    <div><span class="k">עכבר</span><p>מסתכלים מסביב.</p></div>
+    <div><span class="k">רווח</span> <span class="k">C</span><p>מתחת למים: רווח – למעלה, C – למטה.</p></div>
+    <div><span class="k">E</span><p>אוספים דברים, פותחים ארגזים ומשתמשים בשולחן העבודה.</p></div>
+    <div><span class="k">Tab</span><p>התיק: אוכל, ציוד ודפי היומן.</p></div>
+    <div><span class="k">Shift</span><p>ריצה ושחייה מהירה.</p></div>
+  </div>
+  <p class="tutBox"><b>המטרה:</b> לגלות מה קרה למשלחת. תמיד יש לך משימה בפינה הימנית למעלה, עם רשימה של מה צריך ואיפה למצוא. המשולש האדום במצפן מראה לאן ללכת.</p>
+  <p class="tutBox warn"><b>שימו לב לאוויר:</b> הפס הכחול למטה נגמר מתחת למים. כשהוא נמוך – עולים לנשום.</p>
+  <button class="btn big" id="tutOk">יאללה, מתחילים</button></div></div>
 <div id="dead" class="screen hidden"><div class="panel narrow"><h2>איבדת את ההכרה</h2><p>התעוררת במחנה. חלק מהדברים נשארו בים.</p><button class="btn big" id="btnRevive">להמשיך</button></div></div>
 <div id="loading" class="screen"><div class="loadBox"><div class="title small">האי של המשלחת</div><div class="lbar"><i id="loadBar"></i></div><div class="dim" id="loadText">בונים את האי…</div></div></div>
 <div id="err" class="hidden"></div>

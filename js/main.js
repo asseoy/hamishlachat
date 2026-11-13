@@ -49,7 +49,7 @@ async function boot() {
 
   // ---------- flow ----------
   G.toast = (over, text) => { $('toastOver').textContent = over; $('toastText').textContent = text; const t = $('toast'); t.classList.remove('hidden'); t.style.opacity = 1; clearTimeout(G.toast.tm); G.toast.tm = setTimeout(() => t.style.opacity = 0, 2800); };
-  const screens = ['menu', 'help', 'pause', 'loading', 'dead'];
+  const screens = ['menu', 'help', 'pause', 'loading', 'dead', 'tut'];
   const show = id => { screens.forEach(s => $(s).classList.toggle('hidden', s !== id)); $('hud').classList.toggle('hidden', !!id); };
   function doSave() {
     save.game = { done: [...inv.done], bag: inv.bag, eq: inv.eq, logs: inv.logs, flags: G.story.flags, step: G.story.step, pos: P.pos.toArray(), yaw: P.yaw, hp: P.hp, food: P.food, water: P.water, time: G.sky.time };
@@ -59,8 +59,8 @@ async function boot() {
   function start(fresh) {
     audio.start();
     if (fresh) { save.game = null; writeSave(); location.href = location.pathname + (G.dev ? '?dev&new' : '?new'); return; }
+    if (!st.pos && !start.tutDone) { show('tut'); $('tutOk').onclick = () => { start.tutDone = true; start(false); setTimeout(() => G.toast('שבט הנשיא', 'האי של המשלחת'), 400); }; return; }
     G.running = true; G.paused = false; show(null); safeLock(canvas);
-    if (!st.pos) setTimeout(() => G.toast('שבט הנשיא', 'האי של המשלחת'), 400);
   }
   $('btnNew').onclick = () => start(true);
   $('btnLoad').disabled = !save.game; $('btnLoad').onclick = () => start(false);
@@ -114,7 +114,7 @@ async function boot() {
       // compass: yaw 0 looks to -z (north)
       const yawDeg = ((-P.yaw * 180 / Math.PI) % 360 + 360) % 360; strip.style.left = (210 - 30 - (yawDeg / 45) * 60 - 8 * 60) + 'px';
       const tgt = G.story.target(); const mk = $('compassMark');
-      if (tgt) { const a = Math.atan2(tgt.x - P.pos.x, -(tgt.z - P.pos.z)) * 180 / Math.PI; let d = ((a - yawDeg + 540) % 360) - 180; mk.style.display = Math.abs(d) < 100 ? 'block' : 'none'; mk.style.left = (210 + d / 45 * 60) + 'px'; } else mk.style.display = 'none';
+      if (tgt) { $('compassDist').textContent = Math.round(Math.hypot(tgt.x - P.pos.x, tgt.z - P.pos.z)) + ' מ׳'; const a = Math.atan2(tgt.x - P.pos.x, -(tgt.z - P.pos.z)) * 180 / Math.PI; let d = ((a - yawDeg + 540) % 360) - 180; mk.style.display = Math.abs(d) < 100 ? 'block' : 'none'; mk.style.left = (210 + d / 45 * 60) + 'px'; } else { mk.style.display = 'none'; $('compassDist').textContent = ''; }
     }
     if (!G.noRender) renderer.render(G.scene, G.camera);
     endInput();

@@ -12,8 +12,8 @@ export function createInventory(state) {
   const inv = { bag: state.bag || {}, eq: state.eq || {}, done: state.done, logs: state.logs || [] };
   G.inv = inv;
   const count = id => inv.bag[id] || 0;
-  inv.add = (id, n = 1, quiet) => { inv.bag[id] = count(id) + n; if (!quiet) pickupToast(id, n); autoEquip(id); G.story && G.story.check(); refresh(); };
-  inv.take = (id, n = 1) => { inv.bag[id] = count(id) - n; if (inv.bag[id] <= 0) delete inv.bag[id]; refresh(); };
+  inv.add = (id, n = 1, quiet) => { inv.bag[id] = count(id) + n; if (!quiet) pickupToast(id, n); autoEquip(id); G.story && G.story.check(); G.story && G.story.render && G.story.render(); refresh(); };
+  inv.take = (id, n = 1) => { inv.bag[id] = count(id) - n; if (inv.bag[id] <= 0) delete inv.bag[id]; G.story && G.story.render && G.story.render(); refresh(); };
   inv.count = count;
   inv.o2Bonus = () => (inv.eq.tank ? ITEMS[inv.eq.tank].o2 : 0);
   function applyGear() {
@@ -65,10 +65,12 @@ export function createInventory(state) {
     const tabs = [...new Set(RECIPES.map(r => r.tab))];
     $('craftTabs').innerHTML = tabs.map(t => `<button class="${t === craftTab ? 'on' : ''}">${t}</button>`).join('');
     $('craftTabs').querySelectorAll('button').forEach(b => b.onclick = () => { craftTab = b.textContent; craftRefresh(); });
-    $('craftList').innerHTML = RECIPES.map((r, i) => r.tab !== craftTab ? '' : `<div class="rec ${canMake(r) ? 'ok' : ''}" data-i="${i}">
-      <img src="${G.icons[r.out]}"><div class="rn"><b>${ITEMS[r.out].n}${r.n > 1 ? ' ×' + r.n : ''}</b><small>${ITEMS[r.out].d || ''}</small></div>
+    const nd = G.story && G.story.needs ? G.story.needs() : null, mis = nd ? nd.tree : new Set();
+    const order = RECIPES.map((r, i) => i).sort((a, b) => (mis.has(RECIPES[b].out) ? 1 : 0) - (mis.has(RECIPES[a].out) ? 1 : 0));
+    $('craftList').innerHTML = order.map(i => { const r = RECIPES[i]; return r.tab !== craftTab ? '' : `<div class="rec ${canMake(r) ? 'ok' : ''}" data-i="${i}">
+      <img src="${G.icons[r.out]}"><div class="rn"><b>${ITEMS[r.out].n}${r.n > 1 ? ' ×' + r.n : ''}${mis.has(r.out) ? '<span class="mis">למשימה</span>' : ''}</b><small>${ITEMS[r.out].d || ''}</small></div>
       <div class="ing">${Object.entries(r.in).map(([id, n]) => `<span class="${count(id) >= n ? 'have' : ''}"><img src="${G.icons[id]}">${count(id)}/${n}</span>`).join('')}</div>
-      <button class="mk" ${canMake(r) ? '' : 'disabled'}>בנה</button></div>`).join('');
+      <button class="mk" ${canMake(r) ? '' : 'disabled'}>בנה</button></div>`; }).join('');
     $('craftList').querySelectorAll('.rec').forEach(el => { el.querySelector('.mk').onclick = () => make(RECIPES[+el.dataset.i]); });
   }
   function make(r) {
@@ -77,9 +79,19 @@ export function createInventory(state) {
     inv.add(r.out, r.n || 1); G.sfx && G.sfx('craft'); craftRefresh();
     if (r.out === 'radio') G.story && G.story.flag('radioBuilt');
   }
-  inv.craft = (v, t) => { craftOpen = v; if (t) craftTab = t; $('craft').classList.toggle('hidden', !v); if (v) { open && inv.toggle(false); G.uiOpen = true; document.exitPointerLock && document.exitPointerLock(); craftRefresh(); } else closeUI(); };
+  inv.craft = (v, t) => { craftOpen = v; if (t) craftTab = t; else if (v && G.story && G.story.needs) { const nd = G.story.needs(); if (nd) { const r = RECIPES.find(r => nd.tree.has(r.out) && canMake(r)) || RECIPES.find(r => nd.tree.has(r.out)); if (r) craftTab = r.tab; } } $('craft').classList.toggle('hidden', !v); if (v) { open && inv.toggle(false); G.uiOpen = true; document.exitPointerLock && document.exitPointerLock(); craftRefresh(); } else closeUI(); };
   $('craftClose').onclick = () => inv.craft(false); $('bagClose').onclick = () => inv.toggle(false);
 
+  // hints: once only (remembered) or repeating with a cooldown
+  let tipSeen = {}; try { tipSeen = JSON.parse(localStorage.getItem('hamishlachat.tips') || '{}'); } catch (e) {}
+  const tipNext = {}; let tipTimer = 0;
+  function tip(key, html, dur = 6, every = 0) {
+    const now = G.t;
+    if (every) { if ((tipNext[key] || 0) > now) return; tipNext[key] = now + every; }
+    else { if (tipSeen[key]) return; tipSeen[key] = 1; try { localStorage.setItem('hamishlachat.tips', JSON.stringify(tipSeen)); } catch (e) {} }
+    const el = $('tip'); el.innerHTML = html; el.classList.remove('hidden'); el.style.opacity = 1; clearTimeout(tipTimer); tipTimer = setTimeout(() => { el.style.opacity = 0; setTimeout(() => el.classList.add('hidden'), 400); }, dur * 1000);
+  }
+  inv.tip = tip;
   // ---------- interaction ----------
   const look = new THREE.Vector3(), tmp = new THREE.Vector3();
   let target = null;
@@ -96,6 +108,17 @@ export function createInventory(state) {
     for (const it of G.interactables) if (!it.used || it.kind === 'craft' || it.kind === 'radio') consider(it, it.pos, it.r, it.label);
     const pr = $('prompt');
     if (target) { pr.classList.remove('hidden'); $('promptText').textContent = target.label; } else pr.classList.add('hidden');
+    // ---- hints at the right moment ----
+    if (target && target.o.kind === 'item') tip('pick', 'לחצו <span class="k">E</span> כדי לאסוף');
+    if (target && target.o.kind === 'craft') tip('bench', 'לחצו <span class="k">E</span> כדי לפתוח את שולחן העבודה ולבנות ציוד');
+    if (target && target.o.kind === 'loot') tip('loot', 'לחצו <span class="k">E</span> כדי לפתוח את הארגז');
+    if (P.headUnder) tip('dive', 'מתחת למים: <span class="k">רווח</span> למעלה · <span class="k">C</span> למטה · שימו לב לפס האוויר הכחול', 8);
+    if (P.headUnder && P.o2 < P.o2Max * 0.3) tip('o2', 'האוויר נגמר – עלו למעלה לנשום! (<span class="k">רווח</span>)', 4, 12);
+    if (P.crush) tip('deep', 'עמוק מדי לחליפה שלכם – עלו קצת למעלה', 4, 12);
+    if (P.food < 25 || P.water < 25) tip('eat', 'אתם ' + (P.food < 25 ? 'רעבים' : 'צמאים') + ' – פתחו את התיק (<span class="k">Tab</span>) ולחצו על אוכל או שתייה. קוקוס יש מתחת לדקלים.', 7, 90);
+    if (G.sky && G.sky.night > 0.6 && P.headUnder) tip(P.hasLamp ? 'lamp' : 'nolamp', P.hasLamp ? 'חשוך – לחצו <span class="k">F</span> להדליק את הפנס' : 'בלילה חשוך מתחת למים. כדאי לבנות פנס צלילה, או לחכות לבוקר על החוף', 7, P.hasLamp ? 0 : 120);
+    const nd = G.story.needs && G.story.needs();
+    if (nd && nd.targets.length && !Object.keys(nd.raw).length && G.campPos.distanceTo(P.pos) > 10) tip('canBuild', 'יש לכם הכל כדי לבנות ' + nd.targets.map(t => ITEMS[t].n).join(' ו') + ' – לכו לשולחן העבודה במחנה', 7, 60);
     // fish: catch with E when one is right in front (spear reaches further)
     if (input.usePressed && !target && P.headUnder) { const id = G.fauna.catchNear(cam, look); if (id) { inv.add(id); G.sfx && G.sfx('splash'); } }
     if (input.usePressed && target) act(target.o);
@@ -123,16 +146,16 @@ export function createStory(state) {
   const st = { flags: state.flags || {}, step: state.step || 0 };
   const inv = G.inv, P = () => G.player;
   const steps = [
-    { t: 'מצא את מחנה המשלחת על האי', done: () => G.campPos.distanceTo(P().pos) < 12, target: () => G.campPos },
-    { t: 'קרא את דף היומן בשולחן העבודה', done: () => inv.logs.includes(0), target: () => G.campPos },
-    { t: 'אסוף חומרים ובנה מסכה וסנפירים', done: () => inv.eq.mask && inv.eq.fins, hint: 'פלסטיק וזכוכית ים בחוף, אצות בלגונה, מלח על סלעי החוף' },
-    { t: 'בנה מיכל חמצן', done: () => inv.eq.tank, hint: 'גרוטאות מתכת יש סביב הספינה הטבועה – אבל קרוב לחוף יש גם' },
-    { t: 'צלול אל הספינה הטבועה "שחף"', done: () => G.wreckPos.distanceTo(P().pos) < 18, target: () => G.wreckPos, hint: 'במישור החולי, מעבר לשונית, בעומק 27 מטר' },
-    { t: 'מצא 3 חלקי רדיו בספינה', done: () => (inv.count('radioPart') >= 3) || st.flags.radioBuilt, target: () => G.wreckPos },
-    { t: 'בנה את הרדיו בשולחן העבודה', done: () => st.flags.radioBuilt, target: () => G.campPos },
-    { t: 'הפעל את הרדיו בעמדת הקשר', done: () => st.flags.radioHeard, target: () => G.campPos },
-    { t: 'בנה חליפת עומק וסקוטר', done: () => inv.eq.suit === 'suitDeep' && inv.eq.scooter, hint: 'כסף וספוגים סגולים יש רק במעמקים' },
-    { t: 'רד אל קרקעית התעלה', done: () => P().pos.y < -110, hint: 'התעלה בדרום־מערב, מעבר למישור' },
+    { t: 'מצא את מחנה המשלחת על האי', done: () => G.campPos.distanceTo(P().pos) < 12, target: () => G.campPos, hint: 'לכו לכיוון המשולש האדום במצפן – יש שם אוהלים ומדורה.' },
+    { t: 'קרא את דף היומן שעל שולחן העבודה', done: () => inv.logs.includes(0), target: () => G.campPos, hint: 'גשו לשולחן העבודה במחנה, הסתכלו על הדף ולחצו E.' },
+    { t: 'בנה מסכה וסנפירים בשולחן העבודה', done: () => inv.eq.mask && inv.eq.fins, need: ['mask', 'fins'], target: () => G.campPos },
+    { t: 'בנה מיכל חמצן בשולחן העבודה', done: () => inv.eq.tank, need: ['o2Tank'], target: () => G.campPos },
+    { t: 'צלול אל הספינה הטבועה "שחף"', done: () => G.wreckPos.distanceTo(P().pos) < 18, target: () => G.wreckPos, hint: 'עקבו אחרי המשולש האדום במצפן. היא מעבר לשונית, בעומק 27 מטר. עלו לנשום בדרך!' },
+    { t: 'מצא 3 חלקי רדיו בספינה', done: () => (inv.count('radioPart') >= 3) || st.flags.radioBuilt, target: () => G.wreckPos, hint: 'שחו לתוך הספינה ופתחו את הארגזים הירוקים עם E. אחד מהם בתא שעל הסיפון.', parts: true },
+    { t: 'בנה את הרדיו בשולחן העבודה', done: () => st.flags.radioBuilt, target: () => G.campPos, need: ['radio'] },
+    { t: 'הפעל את הרדיו בעמדת הקשר', done: () => st.flags.radioHeard, target: () => G.campPos, hint: 'עמדת הקשר היא השולחן עם הרדיו במחנה. הסתכלו עליו ולחצו E.' },
+    { t: 'בנה חליפת עומק וסקוטר', done: () => inv.eq.suit === 'suitDeep' && inv.eq.scooter, need: ['suitDeep', 'scooter'], target: () => G.campPos },
+    { t: 'רד אל קרקעית התעלה', done: () => P().pos.y < -110, hint: 'התעלה בדרום־מערב, מעבר למישור החולי. הדליקו פנס (F) – שם חשוך.', target: () => ({ x: Math.cos(3.9) * 280, y: -100, z: Math.sin(3.9) * 280 }) },
     { t: 'המשך יבוא... (סוף פרק 1)', done: () => false },
   ];
   st.steps = steps;
@@ -144,9 +167,31 @@ export function createStory(state) {
     inv.showNote('שידור מהמעמקים', '...קשש... כאן תמר... אם מישהו שומע... אני בתוך התחנה בקרקעית התעלה... יש כאן אוויר... הגבישים... הם מאירים את הדרך... תביאו חליפת עומק... קשש...');
     st.check();
   };
+  // what is still missing for the current step: expand recipes down to raw materials, using what you already have
+  const WHERE = { plastic: 'בחוף', seaGlass: 'בחוף ובלגונה', salt: 'על סלעי החוף', palmLeaf: 'על האי', seagrass: 'בלגונה, מתחת למים', scrap: 'ליד הספינה הטבועה ובחוף ליד הסירה השבורה', oldRope: 'בחוף', copperOre: 'סלעים במדרון השונית', quartz: 'בשונית ובמישור', sponge: 'בגן הספוגים (צריך סכין)', silverOre: 'במעמקים, מעבר למישור', deepSponge: 'במעמקים (צריך סכין)', battery: 'בספינה הטבועה ומסביבה', solarCell: 'בארגז שבתא של הספינה', wires: 'בספינה הטבועה', glowCrystal: 'בתעלה העמוקה', driftwood: 'בחוף', radioPart: 'בארגזים בספינה', coconut: 'מתחת לדקלים', limestone: 'על האי' };
+  st.needs = () => {
+    const s = steps[st.step]; if (!s.need) return null;
+    const have = Object.assign({}, inv.bag), raw = {}, tree = new Set();
+    const need = (id, n) => { const h = have[id] || 0, u = Math.min(h, n); have[id] = h - u; n -= u; if (n <= 0) return;
+      const r = RECIPES.find(r => r.out === id && !r.alt); if (!r) { raw[id] = (raw[id] || 0) + n; return; }
+      tree.add(id); const k = Math.ceil(n / (r.n || 1)); for (const [i, c] of Object.entries(r.in)) need(i, c * k); };
+    const owned = t => Object.values(inv.eq).includes(t) || inv.count(t) > 0;
+    for (const t of s.need) { if (owned(t)) continue; need(t, 1); tree.add(t); }
+    return { raw, tree, targets: s.need.filter(t => !owned(t)) };
+  };
   function render() {
     const s = steps[st.step]; $('objText').textContent = s.t; $('objHint').textContent = s.hint || '';
+    const ul = $('objNeed'); let html = '';
+    if (s.parts) { const n = Math.min(3, inv.count('radioPart')); html = `<li class="${n >= 3 ? 'ok' : ''}"><img src="${G.icons.radioPart}">${n}/3 חלקי רדיו <i>– בארגזים בספינה</i></li>`; }
+    const nd = st.needs();
+    if (nd) {
+      const ids = Object.keys(nd.raw);
+      if (!ids.length) html += `<li class="ok">✔ יש לך הכל! לך לשולחן העבודה במחנה ולחץ E</li>`;
+      else html += ids.slice(0, 7).map(id => `<li><img src="${G.icons[id]}">עוד ${nd.raw[id]} ${ITEMS[id].n} <i>– ${WHERE[id] || ''}</i></li>`).join('');
+    }
+    ul.innerHTML = html;
   }
+  st.render = render;
   st.target = () => steps[st.step].target ? steps[st.step].target() : null;
   render();
   G.story = st;
