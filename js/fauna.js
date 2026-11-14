@@ -142,8 +142,8 @@ export function createFauna() {
     for (const j of F.jelly) { const pu = Math.sin(t * 2.2 + j.ph); j.b.scale.set(1 + pu * 0.12, 1 - pu * 0.15, 1 + pu * 0.12); j.g.position.addScaledVector(j.drift, dt); j.g.position.y += (pu > 0 ? 0.12 : -0.03) * dt; if (j.g.position.y > -1) j.g.position.y = -1; j.lines.forEach((l, k) => l.rotation.set(Math.sin(t * 1.3 + k) * 0.15, 0, Math.cos(t * 1.1 + k) * 0.15)); }
   };
   // catch the nearest catchable fish in front of the diver
-  F.catchNear = (pos, look) => {
-    let best = null, bd = 1.8;
+  F.catchNear = (pos, look, reach = 1.8) => {
+    let best = null, bd = reach;
     for (const s of F.schools) { if (!s.sp.catchable || s.home.distanceTo(pos) > 60) continue; for (const f of s.fish) { if (!f.alive) continue; tmp.copy(f.p).sub(pos); const d = tmp.length(); if (d < bd && tmp.normalize().dot(look) > 0.75) { bd = d; best = { s, f }; } } }
     if (!best) return null; best.f.alive = false; best.f.dead = 40; return best.s.sp.item;
   };

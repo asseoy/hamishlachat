@@ -120,7 +120,7 @@ export function createInventory(state) {
     const nd = G.story.needs && G.story.needs();
     if (nd && nd.targets.length && !Object.keys(nd.raw).length && G.campPos.distanceTo(P.pos) > 10) tip('canBuild', 'יש לכם הכל כדי לבנות ' + nd.targets.map(t => ITEMS[t].n).join(' ו') + ' – לכו לשולחן העבודה במחנה', 7, 60);
     // fish: catch with E when one is right in front (spear reaches further)
-    if (input.usePressed && !target && P.headUnder) { const id = G.fauna.catchNear(cam, look); if (id) { inv.add(id); G.sfx && G.sfx('splash'); } }
+    if (input.usePressed && !target && P.headUnder) { const id = G.fauna.catchNear(cam, look, count('spear') ? 3.5 : 1.8); if (id) { inv.add(id); G.sfx && G.sfx('splash'); } }
     if (input.usePressed && target) act(target.o);
   };
   function act(o) {

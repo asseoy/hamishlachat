@@ -66,14 +66,14 @@ async function boot() {
   $('btnLoad').disabled = !save.game; $('btnLoad').onclick = () => start(false);
   $('btnHelp').onclick = () => show('help'); document.querySelectorAll('.back').forEach(b => b.onclick = () => show('menu'));
   const pause = v => { if (!G.running) return; G.paused = v; if (v) { show('pause'); document.exitPointerLock && document.exitPointerLock(); $('sSens').value = save.settings.sens; $('sSfx').value = save.settings.sfx; $('sMusic').value = save.settings.music; $('sQuality').value = save.settings.quality; } else { show(null); safeLock(canvas); } };
-  G.onUnlock = () => pause(true);
+  G.onUnlock = () => { if (P.alive) pause(true); };   // dying releases the mouse too – that must not pause the game
   $('btnResume').onclick = () => pause(false);
   $('btnSave').onclick = () => { doSave(); G.running = false; G.paused = false; show('menu'); $('btnLoad').disabled = false; };
   ['sSens', 'sSfx', 'sMusic', 'sQuality'].forEach(id => $(id).addEventListener('input', () => { save.settings.sens = +$('sSens').value; save.settings.sfx = +$('sSfx').value; save.settings.music = +$('sMusic').value; const q = +$('sQuality').value; if (q !== save.settings.quality) { save.settings.quality = q; applyQuality(); } writeSave(); audio.vol(); }));
   G.onDeath = () => { document.exitPointerLock && document.exitPointerLock(); $('fade').style.opacity = 1; setTimeout(() => { show('dead'); $('fade').style.opacity = 0; }, 700); };
   $('btnRevive').onclick = () => {   // lose some raw materials, wake up at camp
-    for (const id of Object.keys(inv.bag)) if (!['gear', 'quest', 'tool'].includes(ITEMS[id].cat) && Math.random() < 0.3) inv.take(id, Math.ceil(inv.bag[id] / 2));
-    spawnAtCamp(); P.food = Math.max(P.food, 40); P.water = Math.max(P.water, 40); show(null); safeLock(canvas);
+    for (const id of Object.keys(inv.bag)) if (!['gear', 'quest', 'tool'].includes(ITEMS[id].cat) && !['solarCell', 'battery'].includes(id) && Math.random() < 0.3) inv.take(id, Math.ceil(inv.bag[id] / 2));
+    spawnAtCamp(); G.paused = false; P.food = Math.max(P.food, 40); P.water = Math.max(P.water, 40); show(null); safeLock(canvas);
   };
   G.onChapterEnd = () => { setTimeout(() => inv.showNote('סוף פרק 1', 'הגעת לקרקעית התעלה. מתחת לגבישים הזוהרים מסתתרת דלת מתכת עגולה – הכניסה לתחנה של תמר. הפרק הבא: התחנה בעומק.'), 1500); };
   setInterval(() => { if (G.running && !G.paused && P.alive) doSave(); }, 20000);
